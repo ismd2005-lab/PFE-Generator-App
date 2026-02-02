@@ -1,11 +1,10 @@
 import streamlit as st
 import time
 from fpdf import FPDF
-import qrcode
 import tempfile
 
 
-# --- MOTEUR PDF "RENAISSANCE" ---
+# --- MOTEUR PDF "RENAISSANCE" (Adapté Technique) ---
 class PDF(FPDF):
     def header(self):
         pass
@@ -17,45 +16,41 @@ class PDF(FPDF):
         self.cell(0, 10, 'Document généré par le Générateur PFE - 2026', 0, 0, 'C')
 
 
-def create_artistic_pdf(data, instructions, logo_file, link_qr):
+def create_artistic_pdf(data, instructions, logo_file):
     pdf = PDF()
     pdf.add_page()
 
-    # --- 1. PALETTE DE COULEURS ARTISTIQUE ---
-    # Par défaut : Encre Noire et Or Vieilli
+    # --- 1. PALETTE DE COULEURS ---
     text_r, text_g, text_b = 20, 20, 20  # Noir Encre
     accent_r, accent_g, accent_b = 160, 82, 45  # Sienne (Terre brûlée)
 
     instr = instructions.lower() if instructions else ""
     if "bleu" in instr:
-        accent_r, accent_g, accent_b = 25, 25, 112  # Bleu de Minuit
+        accent_r, accent_g, accent_b = 25, 25, 112
     elif "rouge" in instr:
-        accent_r, accent_g, accent_b = 139, 0, 0  # Rouge Sang
+        accent_r, accent_g, accent_b = 139, 0, 0
     elif "vert" in instr:
-        accent_r, accent_g, accent_b = 85, 107, 47  # Vert Olive
+        accent_r, accent_g, accent_b = 85, 107, 47
 
     # --- 2. CADRE ---
-    # Double cadre fin et élégant
     pdf.set_draw_color(text_r, text_g, text_b)
     pdf.set_line_width(0.5)
-    pdf.rect(10, 10, 190, 277)  # Cadre extérieur
+    pdf.rect(10, 10, 190, 277)
 
-    pdf.set_draw_color(accent_r, accent_g, accent_b)  # Couleur d'accent
+    pdf.set_draw_color(accent_r, accent_g, accent_b)
     pdf.set_line_width(1)
-    pdf.rect(12, 12, 186, 273)  # Cadre intérieur coloré
+    pdf.rect(12, 12, 186, 273)
 
     # --- 3. EN-TÊTE ---
-    # Gestion du Logo
     if logo_file:
         with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp_file:
             tmp_file.write(logo_file.getvalue())
             tmp_path = tmp_file.name
         try:
-            # Logo centré
             pdf.image(tmp_path, x=95, y=20, w=20)
         except:
             pass
-        pdf.set_y(45)  # On descend après le logo
+        pdf.set_y(45)
     else:
         pdf.set_y(30)
 
@@ -83,7 +78,8 @@ def create_artistic_pdf(data, instructions, logo_file, link_qr):
     # Titre en très gros Serif
     pdf.set_font("Times", 'B', 26)
     pdf.set_text_color(text_r, text_g, text_b)
-    # Correction alignement (Important pour éviter l'erreur)
+
+    # Titre centré
     pdf.multi_cell(170, 12, titre, border=0, align='C')
 
     # Sous-titre
@@ -137,7 +133,7 @@ def create_artistic_pdf(data, instructions, logo_file, link_qr):
             pdf.cell(130, 6, f"{membre}", 0, 1, 'C')
             y_pos += 6
 
-    # --- 7. PIED DE PAGE & QR CODE ---
+    # --- 7. PIED DE PAGE (SANS QR CODE) ---
     pdf.set_y(255)
     pdf.set_draw_color(accent_r, accent_g, accent_b)
     pdf.line(50, 255, 160, 255)
@@ -147,19 +143,12 @@ def create_artistic_pdf(data, instructions, logo_file, link_qr):
     pdf.set_text_color(text_r, text_g, text_b)
     pdf.cell(0, 10, "Année Universitaire 2025 - 2026", 0, 0, 'C')
 
-    if link_qr:
-        qr = qrcode.make(link_qr)
-        qr_path = "temp_qr.png"
-        qr.save(qr_path)
-        pdf.image(qr_path, x=175, y=250, w=20)
-
     return pdf.output(dest='S').encode('latin-1')
 
 
 # --- CONFIGURATION STREAMLIT ---
 st.set_page_config(page_title="Générateur PFE", page_icon="🎓", layout="centered")
 
-# Titre Technique
 st.markdown("<h1 style='text-align: center; font-family: Times New Roman;'>🎓 Générateur de Page de Garde PFE</h1>",
             unsafe_allow_html=True)
 
@@ -172,10 +161,7 @@ st.markdown("---")
 with st.sidebar:
     st.header("⚙️ Configuration")
     format_sortie = st.radio("Format de sortie :", ("PDF Standard", "LaTeX (Code Source)"))
-
-    # MODIFICATION ICI : Changement du nom du toggle
     mode_demo = st.toggle("Mode Gratuit", value=True)
-
     st.markdown("---")
     uploaded_logo = st.file_uploader("Logo Établissement (Optionnel)", type=['png', 'jpg'])
 
@@ -212,7 +198,7 @@ with col1:
 with col2:
     auteur = st.text_input("👤 Réalisé par", placeholder="Votre Nom")
     encadrant = st.text_input("👨‍🏫 Encadré par", placeholder="Ex: Pr. BOUCHENTOUF")
-    link_qr = st.text_input("🔗 Lien Repository / Démo", placeholder="GitHub / Portfolio")
+    # SUPPRESSION DE LA CASE LIEN ICI
 
 st.markdown("**⚖️ Membres du Jury :**")
 jury = st.text_area("Liste des membres", placeholder="Pr. Nom1, Pr. Nom2...", height=68)
@@ -236,7 +222,8 @@ if st.button("✨ GÉNÉRER LE DOCUMENT ✨", use_container_width=True):
                     content = generate_latex(data_user, instructions)
                     st.code(content, language='latex')
                 else:
-                    pdf_bytes = create_artistic_pdf(data_user, instructions, uploaded_logo, link_qr)
+                    # APPEL SANS QR CODE
+                    pdf_bytes = create_artistic_pdf(data_user, instructions, uploaded_logo)
                     st.balloons()
                     st.success("Document généré avec succès.")
                     st.download_button(
